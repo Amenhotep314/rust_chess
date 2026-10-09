@@ -1,5 +1,5 @@
 mod board;
 
 fn main() {
-    let gamestate = board::Board::new();
+    let gamestate = board::Board::default();
 }
