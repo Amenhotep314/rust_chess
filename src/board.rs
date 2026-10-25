@@ -1,28 +1,18 @@
+use std::fmt;
+
 pub struct Board {
     white: Side,
     black: Side,
+    board: [usize; 64],
     white_to_move: bool,
+    moves: usize,
 }
 
 struct Side {
-    pawns: Bitboard,
-    knights: Bitboard,
-    bishops: Bitboard,
-    rooks: Bitboard,
-    queens: Bitboard,
-    king: Bitboard,
+    bitboards: [u64; 6],
     passantable_mask: u8,
     can_castle_kingside: bool,
     can_castle_queenside: bool,
-}
-
-struct Bitboard {
-    bitboard: u64,
-}
-
-struct Move {
-    start: u8,
-    end: u8,
 }
 
 impl Board {
@@ -30,7 +20,9 @@ impl Board {
         Self {
             white: Side::new(),
             black: Side::new(),
+            board: [0; 64],
             white_to_move: true,
+            moves: 0,
         }
     }
 
@@ -51,7 +43,7 @@ impl Board {
             match read_board {
                 // Read the piece locations
                 0 => match character {
-                    'p' => board.black.pawns.add_piece(&rank, &file),
+                    'p' => board.add_piece(&rank, &file),
                     'n' => board.black.knights.add_piece(&rank, &file),
                     'b' => board.black.bishops.add_piece(&rank, &file),
                     'r' => board.black.rooks.add_piece(&rank, &file),
@@ -100,10 +92,10 @@ impl Board {
 
                 3 => {
                     if character.is_lowercase() {
-                        let passantable_file_ascii: u32 = character.into();
+                        let passantable_file_ascii: usize = character.into();
                         passantable_file = passantable_file_ascii - 97;
-                    } else if character.is_digit(10) {
-                        let digit: u32 = character.to_digit(10).unwrap();
+                    } else if character.is_ascii_digit() {
+                        let digit: usize = character.to_digit(10).unwrap();
 
                         if digit == 3 {
                             board.white.make_passantable(&passantable_file);
@@ -120,33 +112,31 @@ impl Board {
         board
     }
 
-    fn piece_mask(&self) -> u64 {
-        self.white.piece_mask() & self.black.piece_mask()
+    fn add_piece(&mut self, is_white: bool, kind: usize, rank: usize, file: usize) {
+        if is_white {
+            self.white.bitboards[kind] = 1 << (8 * rank + file);
+            self.board[rank * 8 + file] = kind;
+        } else {
+            self.black.bitboards[kind] = 1 << (8 * rank + file);
+            self.board[rank * 8 + file] = kind + 6;
+        }
+    }
+}
+
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "")
     }
 }
 
 impl Side {
     fn new() -> Self {
         Self {
-            pawns: Bitboard::new(),
-            knights: Bitboard::new(),
-            bishops: Bitboard::new(),
-            rooks: Bitboard::new(),
-            queens: Bitboard::new(),
-            king: Bitboard::new(),
+            bitboards: [0; 6],
             passantable_mask: 0,
             can_castle_kingside: true,
             can_castle_queenside: true,
         }
-    }
-
-    fn piece_mask(&self) -> u64 {
-        self.pawns.bitboard
-            & self.knights.bitboard
-            & self.bishops.bitboard
-            & self.rooks.bitboard
-            & self.queens.bitboard
-            & self.king.bitboard
     }
 
     pub fn make_passantable(&mut self, file: &u32) {
@@ -155,13 +145,6 @@ impl Side {
     }
 }
 
-impl Bitboard {
-    pub fn new() -> Self {
-        Self { bitboard: 0 }
-    }
-
-    pub fn add_piece(&mut self, rank: &u32, file: &u32) {
-        let new_piece: u64 = 1 << (8 * rank + file);
-        self.bitboard &= new_piece;
-    }
+pub fn print_piece(piece_number: &usize) -> &str {
+    "k"
 }
